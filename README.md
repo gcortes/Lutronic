@@ -4,9 +4,9 @@ The service only works with older Homeworks controllers that use the HomeWorks R
 The application has been tested on OS X 10.11.3 using Ruby 2.2.0p0. It will not work with the version that comes with the OS: 2.0.0p247. It should work with 2.1.0.
 
 ## Requirements
-* socket
-* uri
-* net/telnet
+* socket - included with Ruby
+* uri - inclued with Rugy
+* net/telnet - included with Ruby
 * active_support/all - the gem is named activesupport
 
 You can check the version of Ruby on OS X by entering the following command in Terminal:
