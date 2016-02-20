@@ -5,7 +5,7 @@ The application has been tested on OS X 10.11.3 using Ruby 2.2.0p0. It will not 
 
 ## Requirements
 * socket - included with Ruby
-* uri - inclued with Rugy
+* uri - inclued with Ruby
 * net/telnet - included with Ruby
 * active_support/all - the gem is named activesupport
 
