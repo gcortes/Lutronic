@@ -110,7 +110,7 @@ server = TCPServer.new 8081   # listen on port 8081 for incoming connections
 @lutron = Net::Telnet::new("Host" => "10.0.0.2",
                              "Timeout" => 10,
                              "Prompt" => /LNET> /)
-@lutron.cmd("iPhoneCurt , control4me") { |c| print c }
+@lutron.cmd("user , password") { |c| print c }
 #@lutron.close  # doesn't work on Lutron processor
 
 loop do
