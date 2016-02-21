@@ -26,59 +26,45 @@ def parse(msg)
   return parms
 end
 #================================================================================#
+def switchStatusCmd(address, button)
+  rsp = @lutron.cmd('RKLS, ' + address)
+  # sometimes, the processor will return multiple stati.
+  # first find the right line
+  ledStatusLine = rsp[/\[#{address}\], \b[0-9]{24}\b/]
+  ledStatus = ledStatusLine[/\b[0-9]{24}\b/]  # extract the status settings
+  return ledStatus[button.to_i-1]
+end
+#================================================================================#
 def switchOn(devicetype, address, button)
-  cmd = 'RKLS, '+address
-  puts 'cmd: ',cmd
-  rsp = @lutron.cmd(cmd)
-  #rsp = @lutron.cmd('RKLS, 01.06.05')
-  puts "response: ", rsp
-  ledStatus = rsp[/\b[0-9]{24}\b/]
-  puts 'led status: ', ledStatus
-  if ledStatus[button.to_i-1] != '0'  # can be 1, 2, or 3
-    puts "Switch already on"
+  if switchStatusCmd(address, button) != '0'  # can be 1, 2, or 3
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch already on'
     @event = 'noaction'
   else
-    puts "Switch is off. Turning it on"
-    cmd = 'KBP, '+address+' , '+button
-    @lutron.cmd(cmd) { |c| print c }
-    cmd = 'KBR, '+address+' , '+button
-    @lutron.cmd(cmd) { |c| print c }
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch is off. Turning it on'
+    rsp = @lutron.cmd('KBP, ' + address + ' , ' + button)
+    rsp = @lutron.cmd('KBR, ' + address + ' , ' + button)
     @event = 'switch:on'
   end
 end
 #================================================================================#
 def switchOff(devicetype, address, button)
-  cmd = 'RKLS, '+address
-  puts 'cmd: ',cmd
-  rsp = @lutron.cmd(cmd)
-  puts "response: ", rsp
-  ledStatus = rsp[/\b[0-9]{24}\b/]
-  puts 'led status: ', ledStatus
-  if ledStatus[button.to_i-1] == '0'
-    puts "Switch already off"
+  if switchStatusCmd(address, button) == '0'
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch already off'
     @event = 'noaction'
   else
-    puts "Switch is on. Turning it off"
-    cmd = 'KBP, '+address+' , '+button
-    @lutron.cmd(cmd) { |c| print c }
-    cmd = 'KBR, '+address+' , '+button
-    @lutron.cmd(cmd) { |c| print c }
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch is on. Turning it off'
+    rsp = @lutron.cmd('KBP, ' + address + ' , ' + button)
+    rsp = @lutron.cmd('KBR, ' + address + ' , ' + button)
     @event = 'switch:off'
   end
 end
 #================================================================================#
 def switchStatus(devicetype, address, button)
-  cmd = 'RKLS, '+address
-  puts 'cmd: ',cmd
-  rsp = @lutron.cmd(cmd)
-  puts "response: ", rsp
-  ledStatus = rsp[/\b[0-9]{24}\b/]
-  puts 'led status: ', ledStatus
-  if ledStatus[button.to_i-1] == '0'
-    puts "Switch status is off"
+  if switchStatusCmd(address, button) == '0'
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch status is off'
     @event = 'switch:off'
   else
-    puts "Switch status is on"
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch status is on'
     @event = 'switch:on'
   end
 end
@@ -107,10 +93,11 @@ end
 #================================================================================#
 server = TCPServer.new 8081   # listen on port 8081 for incoming connections
 
-@lutron = Net::Telnet::new("Host" => "10.0.0.2",
+@lutron = Net::Telnet::new("Host" => ENV["LUTRONIP"],
                              "Timeout" => 10,
                              "Prompt" => /LNET> /)
-@lutron.cmd("user , password") { |c| print c }
+# If your controller doesn't require credentials, comment out the following line of code.
+@lutron.cmd(ENV["LUTRONUSER"]+' , '+ENV["LUTRONPW"]) { |c| print c }
 #@lutron.close  # doesn't work on Lutron processor
 
 loop do
@@ -125,16 +112,16 @@ loop do
     execute(parms)
     rspCode = '200 OK'
   rescue VerificationError => e
-    print @timeStamp.strftime("%d %b %Y %H:%M:%S"),'|', e, ' |in: ', request
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| ' +  e.to_s + ' | in: ' + request
     rspCode = '400 Bad Request'
-    @event = 'bad request'
+    @event = e.to_s
   end
   response = "HTTP/1.1 " + rspCode + "\r\n" +
       "Content-Type: text/plain\r\n" +
       "Content-Length: #{@event.bytesize}\r\n" +
       "Connection: close\r\n" +
       "\r\n" +
-      "#{@event}\n"
+      "#{@event}\r\n"
   socket.print response
   socket.close  # close the socket, which terminates the connection
 end
