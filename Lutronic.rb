@@ -26,8 +26,28 @@ def parse(msg)
   return parms
 end
 #================================================================================#
+def telnetLogin
+  @lutron = Net::Telnet::new("Host" => ENV["LUTRONIP"],
+                             "Timeout" => 10,
+                             "Prompt" => /LNET> /)
+  # If your controller doesn't require credentials, comment out the following line of code.
+  @lutron.cmd(ENV["LUTRONUSER"]+' , '+ENV["LUTRONPW"])
+  puts 'Telnet session with Lutron processor established. Waiting for socket requests'
+  #@lutron.close  # doesn't work on Lutron processor
+end
+#================================================================================#
 def switchStatusCmd(address, button)
-  rsp = @lutron.cmd('RKLS, ' + address)
+  begin
+    rsp = @lutron.cmd('RKLS, ' + address)
+    # The first call of a socket connection is made here.
+    # Test to see if it has been closed since it was last used.
+    raise 'lost connection' if rsp[/closing connection/]
+  rescue
+    puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Telnet session disconnected, retrying'
+    telnetLogin
+    retry
+  end
+  raise VerificationError, 'invalid address' if !rsp[/KLS/]
   # sometimes, the processor will return multiple stati.
   # first find the right line
   ledStatusLine = rsp[/\[#{address}\], \b[0-9]{24}\b/]
@@ -42,6 +62,7 @@ def switchOn(devicetype, address, button)
   else
     puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch is off. Turning it on'
     rsp = @lutron.cmd('KBP, ' + address + ' , ' + button)
+    raise VerificationError, 'invalid address' if !rsp[/KBP/]
     rsp = @lutron.cmd('KBR, ' + address + ' , ' + button)
     @event = 'switch:on'
   end
@@ -54,6 +75,7 @@ def switchOff(devicetype, address, button)
   else
     puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Switch is on. Turning it off'
     rsp = @lutron.cmd('KBP, ' + address + ' , ' + button)
+    raise VerificationError, 'invalid address' if !rsp[/KBP/]
     rsp = @lutron.cmd('KBR, ' + address + ' , ' + button)
     @event = 'switch:off'
   end
@@ -92,13 +114,7 @@ def execute(parms)
 end
 #================================================================================#
 server = TCPServer.new 8081   # listen on port 8081 for incoming connections
-
-@lutron = Net::Telnet::new("Host" => ENV["LUTRONIP"],
-                             "Timeout" => 10,
-                             "Prompt" => /LNET> /)
-# If your controller doesn't require credentials, comment out the following line of code.
-@lutron.cmd(ENV["LUTRONUSER"]+' , '+ENV["LUTRONPW"]) { |c| print c }
-#@lutron.close  # doesn't work on Lutron processor
+telnetLogin
 
 loop do
   socket = server.accept  # wait on connection
@@ -116,7 +132,7 @@ loop do
     rspCode = '400 Bad Request'
     @event = e.to_s
   end
-  response = "HTTP/1.1 " + rspCode + "\r\n" +
+  response = 'HTTP/1.1 ' + rspCode + "\r\n" +
       "Content-Type: text/plain\r\n" +
       "Content-Length: #{@event.bytesize}\r\n" +
       "Connection: close\r\n" +
