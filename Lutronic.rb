@@ -1,3 +1,5 @@
+#require 'bundler/setup'
+
 require 'socket'
 require 'uri'
 require 'net/telnet'
@@ -40,7 +42,7 @@ def switchStatusCmd(address, button)
   begin
     rsp = @lutron.cmd('RKLS, ' + address)
     # The first call of a socket connection is made here.
-    # Test to see if it has been closed since it was last used.
+    # Test to see if the telnet session has been closed since it was last used.
     raise 'lost connection' if rsp[/closing connection/]
   rescue
     puts @timeStamp.strftime('%d %b %Y %H:%M:%S') + '| Telnet session disconnected, retrying'
