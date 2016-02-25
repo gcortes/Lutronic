@@ -1,0 +1,9 @@
+telnet:
+  host: 127.0.0.0   # the IP address of your Lutron controller
+  port: 23          # 23 is the default and is used by Lutron. Only change it if yours is different
+  credentials: y    # set to y if your controller requires a sign in.
+  user: youruser
+  password: yourpw
+sockets:
+  number: 4
+  starting_port: 8081
