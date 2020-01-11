@@ -1,5 +1,5 @@
 # Lutronic
-I no longer have the Lutron controller to which this software communicates. As such, I no longer maintain this code.
+**I no longer have the Lutron controller to which this software communicates. As such, I no longer maintain this code.**
 
 Lutronic is a web service that drives a Lutron HomeWorks controller via Telnet. The service only works with older HomeWorks controllers that use the [HomeWorks RS232 protocol](http://www.lutron.com/TechnicalDocumentLibrary/HWI%20RS232%20Protocol.pdf). It will not work with HomeWorks QS. The application has been tested on OS X 10.11.3 using Ruby 2.2.0p0. It will not work with the version that comes with the OS: 2.0.0p247. It should work with 2.1.0.
 
